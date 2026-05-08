@@ -1,0 +1,37 @@
+# Binarios
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build output
+/tmp/
+
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# Go
+*.test
+*.out
+vendor/
+go.sum.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
