@@ -30,13 +30,11 @@ func main() {
 	}
 	log.Info().Msg("Redis conectado")
 
-	_ = db
-	_ = rdb
-
 	r := gin.New()
 	r.Use(middleware.RequestLogger())
 
 	r.GET("/health", handlers.Liveness)
+	r.GET("/health/ready", handlers.Readiness(db, rdb))
 
 	if err := r.Run(":" + cfg.AppPort); err != nil {
 		log.Fatal().Err(err).Msg("error iniciando servidor")
