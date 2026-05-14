@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/evelyndaianabejarano-coder/aluna-be/config"
 	"github.com/evelyndaianabejarano-coder/aluna-be/internal/database"
+	"github.com/evelyndaianabejarano-coder/aluna-be/internal/handlers"
 	"github.com/evelyndaianabejarano-coder/aluna-be/internal/logger"
 	"github.com/evelyndaianabejarano-coder/aluna-be/internal/middleware"
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,8 @@ func main() {
 
 	r := gin.New()
 	r.Use(middleware.RequestLogger())
+
+	r.GET("/health", handlers.Liveness)
 
 	if err := r.Run(":" + cfg.AppPort); err != nil {
 		log.Fatal().Err(err).Msg("error iniciando servidor")
