@@ -33,6 +33,7 @@ func main() {
 
 	r := gin.New()
 	r.Use(middleware.RequestLogger())
+	r.Use(middleware.HTTPMetrics())
 
 	r.GET("/health", handlers.Liveness)
 	r.GET("/health/ready", handlers.Readiness(db, rdb))
