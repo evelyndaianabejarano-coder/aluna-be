@@ -7,6 +7,7 @@ import (
 	"github.com/evelyndaianabejarano-coder/aluna-be/internal/logger"
 	"github.com/evelyndaianabejarano-coder/aluna-be/internal/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
 )
 
@@ -35,6 +36,7 @@ func main() {
 
 	r.GET("/health", handlers.Liveness)
 	r.GET("/health/ready", handlers.Readiness(db, rdb))
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	if err := r.Run(":" + cfg.AppPort); err != nil {
 		log.Fatal().Err(err).Msg("error iniciando servidor")
