@@ -72,7 +72,9 @@ func (s *classService) List(filters repository.ClassFilters) ([]ClassDTO, int64,
 	}
 	dtos := make([]ClassDTO, len(classes))
 	for i, c := range classes {
-		dtos[i] = toClassDTO(&c, 0)
+		// CountActiveReservations siempre devuelve 0 en Fase 3.
+		// En Fase 4 se conecta a reservas; por ahora cupos = cupo_maximo.
+		dtos[i] = toClassDTO(&c, c.CupoMaximo)
 	}
 	return dtos, total, nil
 }
@@ -186,7 +188,12 @@ func (s *classService) Update(id uuid.UUID, req UpdateClassRequest, userID uuid.
 	if err != nil {
 		return nil, apperrors.ErrInternal
 	}
-	dto := toClassDTO(updated, 0)
+	reservas, err := s.classRepo.CountActiveReservations(id)
+	if err != nil {
+		return nil, apperrors.ErrInternal
+	}
+	cuposDisponibles := max(updated.CupoMaximo-int(reservas), 0)
+	dto := toClassDTO(updated, cuposDisponibles)
 	return &dto, nil
 }
 

@@ -189,6 +189,7 @@ func TestUpdate_DueñoPuedeEditar(t *testing.T) {
 	repo.On("FindByID", classID).Return(class, nil).Once()
 	repo.On("Update", mock.AnythingOfType("*models.Class")).Return(nil)
 	repo.On("FindByID", classID).Return(class, nil).Once()
+	repo.On("CountActiveReservations", classID).Return(int64(0), nil)
 
 	svc := newClassService(repo)
 	req := services.UpdateClassRequest{Titulo: "Nuevo título"}
@@ -231,6 +232,7 @@ func TestUpdate_AdminPuedeEditarClaseAjena(t *testing.T) {
 	repo.On("FindByID", classID).Return(class, nil).Once()
 	repo.On("Update", mock.AnythingOfType("*models.Class")).Return(nil)
 	repo.On("FindByID", classID).Return(class, nil).Once()
+	repo.On("CountActiveReservations", classID).Return(int64(0), nil)
 
 	svc := newClassService(repo)
 	req := services.UpdateClassRequest{Titulo: "Editada por admin"}

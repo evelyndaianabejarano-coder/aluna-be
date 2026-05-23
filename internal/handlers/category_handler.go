@@ -1,15 +1,15 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	apperrors "github.com/evelyndaianabejarano-coder/aluna-be/internal/errors"
-	"github.com/evelyndaianabejarano-coder/aluna-be/internal/repository"
 	"github.com/evelyndaianabejarano-coder/aluna-be/internal/models"
+	"github.com/evelyndaianabejarano-coder/aluna-be/internal/repository"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"errors"
 )
 
 type CategoryHandler struct {
