@@ -72,9 +72,11 @@ func (s *classService) List(filters repository.ClassFilters) ([]ClassDTO, int64,
 	}
 	dtos := make([]ClassDTO, len(classes))
 	for i, c := range classes {
-		// CountActiveReservations siempre devuelve 0 en Fase 3.
-		// En Fase 4 se conecta a reservas; por ahora cupos = cupo_maximo.
-		dtos[i] = toClassDTO(&c, c.CupoMaximo)
+		reservas, err := s.classRepo.CountActiveReservations(c.ID)
+		if err != nil {
+			return nil, 0, apperrors.ErrInternal
+		}
+		dtos[i] = toClassDTO(&c, max(c.CupoMaximo-int(reservas), 0))
 	}
 	return dtos, total, nil
 }
