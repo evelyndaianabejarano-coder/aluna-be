@@ -98,7 +98,14 @@ func buildApp(t *testing.T) appCore {
 
 	classRepo := repository.NewClassRepository(db)
 	classSvc := services.NewClassService(classRepo)
-	classHandler := handlers.NewClassHandler(classSvc)
+
+	reservationRepo := repository.NewReservationRepository(db)
+	waitlistRepo := repository.NewWaitlistRepository(db)
+	reservationSvc := services.NewReservationService(db, reservationRepo, waitlistRepo, classRepo)
+	waitlistSvc := services.NewWaitlistService(waitlistRepo, reservationRepo, classRepo)
+
+	classHandler := handlers.NewClassHandler(classSvc, reservationSvc)
+	reservationHandler := handlers.NewReservationHandler(reservationSvc, waitlistSvc)
 
 	r := gin.New()
 	authMiddleware := middleware.Auth(tokenSvc)
@@ -135,6 +142,18 @@ func buildApp(t *testing.T) appCore {
 			classes.POST("", authMiddleware, profesorAdmin, classHandler.Create)
 			classes.PATCH("/:id", authMiddleware, classHandler.Update)
 			classes.DELETE("/:id", authMiddleware, classHandler.Cancel)
+			classes.GET("/:id/students", authMiddleware, profesorAdmin, classHandler.GetStudents)
+			classes.POST("/:id/attendance", authMiddleware, profesorAdmin, classHandler.MarkAttendance)
+		}
+
+		alumnoOnly := middleware.RequireRole("alumno")
+		reservations := api.Group("/reservations", authMiddleware)
+		{
+			reservations.POST("", alumnoOnly, reservationHandler.Reserve)
+			reservations.GET("/me", alumnoOnly, reservationHandler.GetMy)
+			reservations.GET("/:id", reservationHandler.Get)
+			reservations.DELETE("/:id", reservationHandler.Cancel)
+			reservations.POST("/waitlist", alumnoOnly, reservationHandler.JoinWaitlist)
 		}
 
 		users := api.Group("/users", authMiddleware)

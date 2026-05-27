@@ -60,12 +60,13 @@ func main() {
 
 	classRepo := repository.NewClassRepository(db)
 	classSvc := services.NewClassService(classRepo)
-	classHandler := handlers.NewClassHandler(classSvc)
 
 	reservationRepo := repository.NewReservationRepository(db)
 	waitlistRepo := repository.NewWaitlistRepository(db)
 	reservationSvc := services.NewReservationService(db, reservationRepo, waitlistRepo, classRepo)
 	waitlistSvc := services.NewWaitlistService(waitlistRepo, reservationRepo, classRepo)
+
+	classHandler := handlers.NewClassHandler(classSvc, reservationSvc)
 	reservationHandler := handlers.NewReservationHandler(reservationSvc, waitlistSvc)
 
 	r := gin.New()
@@ -111,6 +112,8 @@ func main() {
 			classes.POST("", authMiddleware, profesorAdmin, classHandler.Create)
 			classes.PATCH("/:id", authMiddleware, classHandler.Update)
 			classes.DELETE("/:id", authMiddleware, classHandler.Cancel)
+			classes.GET("/:id/students", authMiddleware, profesorAdmin, classHandler.GetStudents)
+			classes.POST("/:id/attendance", authMiddleware, profesorAdmin, classHandler.MarkAttendance)
 		}
 
 		alumnoOnly := middleware.RequireRole("alumno")

@@ -32,6 +32,7 @@ type ReservationService interface {
 	Cancel(id, userID uuid.UUID, role models.Role) error
 	GetMy(alumnoID uuid.UUID, page, limit int) ([]ReservationDTO, int64, error)
 	Get(id, userID uuid.UUID, role models.Role) (*ReservationDTO, error)
+	GetStudents(claseID uuid.UUID) ([]ReservationDTO, error)
 	MarkAttendance(claseID uuid.UUID, attendances []AttendanceRecord, userID uuid.UUID, role models.Role) error
 }
 
@@ -196,6 +197,18 @@ func (s *reservationService) Get(id, userID uuid.UUID, role models.Role) (*Reser
 
 	dto := toReservationDTO(res)
 	return &dto, nil
+}
+
+func (s *reservationService) GetStudents(claseID uuid.UUID) ([]ReservationDTO, error) {
+	reservations, err := s.reservRepo.FindByClaseID(claseID)
+	if err != nil {
+		return nil, apperrors.ErrInternal
+	}
+	dtos := make([]ReservationDTO, len(reservations))
+	for i, r := range reservations {
+		dtos[i] = toReservationDTO(&r)
+	}
+	return dtos, nil
 }
 
 func (s *reservationService) MarkAttendance(claseID uuid.UUID, attendances []AttendanceRecord, userID uuid.UUID, role models.Role) error {

@@ -15,11 +15,12 @@ import (
 )
 
 type ClassHandler struct {
-	classSvc services.ClassService
+	classSvc   services.ClassService
+	reservSvc  services.ReservationService
 }
 
-func NewClassHandler(classSvc services.ClassService) *ClassHandler {
-	return &ClassHandler{classSvc: classSvc}
+func NewClassHandler(classSvc services.ClassService, reservSvc services.ReservationService) *ClassHandler {
+	return &ClassHandler{classSvc: classSvc, reservSvc: reservSvc}
 }
 
 func (h *ClassHandler) List(c *gin.Context) {
@@ -141,6 +142,65 @@ func (h *ClassHandler) Update(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, class)
+}
+
+func (h *ClassHandler) GetStudents(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		apperrors.Respond(c, apperrors.ErrClassNotFound)
+		return
+	}
+
+	students, err := h.reservSvc.GetStudents(id)
+	if err != nil {
+		if appErr, ok := err.(*apperrors.AppError); ok {
+			apperrors.Respond(c, appErr)
+			return
+		}
+		apperrors.Respond(c, apperrors.ErrInternal)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": students})
+}
+
+func (h *ClassHandler) MarkAttendance(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		apperrors.Respond(c, apperrors.ErrClassNotFound)
+		return
+	}
+
+	var req struct {
+		Alumnos []struct {
+			ID      string `json:"id"      binding:"required,uuid"`
+			Presente bool  `json:"presente"`
+		} `json:"alumnos" binding:"required,min=1"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		apperrors.Respond(c, apperrors.ErrValidation)
+		return
+	}
+
+	userID := c.MustGet(middleware.ContextKeyUserID).(uuid.UUID)
+	role := c.MustGet(middleware.ContextKeyRole).(models.Role)
+
+	attendances := make([]services.AttendanceRecord, len(req.Alumnos))
+	for i, a := range req.Alumnos {
+		alumnoID, _ := uuid.Parse(a.ID)
+		attendances[i] = services.AttendanceRecord{AlumnoID: alumnoID, Presente: a.Presente}
+	}
+
+	if err := h.reservSvc.MarkAttendance(id, attendances, userID, role); err != nil {
+		if appErr, ok := err.(*apperrors.AppError); ok {
+			apperrors.Respond(c, appErr)
+			return
+		}
+		apperrors.Respond(c, apperrors.ErrInternal)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 func (h *ClassHandler) Cancel(c *gin.Context) {
