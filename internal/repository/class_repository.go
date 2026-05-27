@@ -100,8 +100,11 @@ func (r *classRepository) Cancel(id uuid.UUID) error {
 		Update("estado", models.EstadoCancelada).Error
 }
 
-// CountActiveReservations retorna 0 en Fase 3.
-// En Fase 4 se conecta a la tabla reservas.
 func (r *classRepository) CountActiveReservations(classID uuid.UUID) (int64, error) {
-	return 0, nil
+	var count int64
+	err := r.db.Table("reservations").
+		Where("clase_id = ? AND estado IN ?", classID,
+			[]string{"pendiente", "confirmada"}).
+		Count(&count).Error
+	return count, err
 }
