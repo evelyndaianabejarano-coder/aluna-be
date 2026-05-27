@@ -37,10 +37,17 @@ var (
 
 // Reservas
 var (
-	ErrReservationClassFull         = New("RESERVATION_CLASS_FULL", "La clase no tiene cupos disponibles", http.StatusConflict)
-	ErrReservationConflict          = New("RESERVATION_CONFLICT", "Ya tenés una reserva activa para esta clase", http.StatusConflict)
-	ErrReservationNotFound          = New("RESERVATION_NOT_FOUND", "Reserva no encontrada", http.StatusNotFound)
-	ErrReservationAlreadyCancelled  = New("RESERVATION_ALREADY_CANCELLED", "La reserva ya fue cancelada", http.StatusBadRequest)
+	ErrReservationClassFull        = New("RESERVATION_CLASS_FULL", "La clase no tiene cupos disponibles", http.StatusConflict)
+	ErrReservationConflict         = New("RESERVATION_CONFLICT", "Ya tenés una reserva activa para esta clase", http.StatusConflict)
+	ErrReservationNotFound         = New("RESERVATION_NOT_FOUND", "Reserva no encontrada", http.StatusNotFound)
+	ErrReservationAlreadyCancelled = New("RESERVATION_ALREADY_CANCELLED", "La reserva ya fue cancelada", http.StatusBadRequest)
+)
+
+// Lista de espera
+var (
+	ErrWaitlistAlreadyJoined = New("WAITLIST_ALREADY_JOINED", "Ya estás en la lista de espera de esta clase", http.StatusConflict)
+	ErrWaitlistNotFound      = New("WAITLIST_NOT_FOUND", "No estás en la lista de espera de esta clase", http.StatusNotFound)
+	ErrClassNotFull          = New("CLASS_NOT_FULL", "La clase tiene cupos disponibles, podés reservar directamente", http.StatusBadRequest)
 )
 
 // Clases
