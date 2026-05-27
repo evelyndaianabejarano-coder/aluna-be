@@ -131,7 +131,8 @@ func (s *reservationService) Reserve(alumnoID, claseID uuid.UUID) (*ReservationD
 		if err != nil {
 			return apperrors.ErrInternal
 		}
-		result := toReservationDTO(created)
+		cupos := max(class.CupoMaximo-int(count)-1, 0)
+		result := toReservationDTO(created, cupos)
 		dto = &result
 		return nil
 	})
@@ -204,7 +205,15 @@ func (s *reservationService) GetMy(alumnoID uuid.UUID, page, limit int) ([]Reser
 
 	dtos := make([]ReservationDTO, len(reservations))
 	for i, r := range reservations {
-		dtos[i] = toReservationDTO(&r)
+		reservas, err := s.classRepo.CountActiveReservations(r.ClaseID)
+		if err != nil {
+			return nil, 0, apperrors.ErrInternal
+		}
+		cupos := 0
+		if r.Clase != nil {
+			cupos = max(r.Clase.CupoMaximo-int(reservas), 0)
+		}
+		dtos[i] = toReservationDTO(&r, cupos)
 	}
 	return dtos, total, nil
 }
@@ -222,7 +231,15 @@ func (s *reservationService) Get(id, userID uuid.UUID, role models.Role) (*Reser
 		return nil, apperrors.ErrUnauthorized
 	}
 
-	dto := toReservationDTO(res)
+	reservas, err := s.classRepo.CountActiveReservations(res.ClaseID)
+	if err != nil {
+		return nil, apperrors.ErrInternal
+	}
+	cupos := 0
+	if res.Clase != nil {
+		cupos = max(res.Clase.CupoMaximo-int(reservas), 0)
+	}
+	dto := toReservationDTO(res, cupos)
 	return &dto, nil
 }
 
@@ -231,9 +248,19 @@ func (s *reservationService) GetStudents(claseID uuid.UUID) ([]ReservationDTO, e
 	if err != nil {
 		return nil, apperrors.ErrInternal
 	}
+
+	reservas, err := s.classRepo.CountActiveReservations(claseID)
+	if err != nil {
+		return nil, apperrors.ErrInternal
+	}
+
 	dtos := make([]ReservationDTO, len(reservations))
 	for i, r := range reservations {
-		dtos[i] = toReservationDTO(&r)
+		cupos := 0
+		if r.Clase != nil {
+			cupos = max(r.Clase.CupoMaximo-int(reservas), 0)
+		}
+		dtos[i] = toReservationDTO(&r, cupos)
 	}
 	return dtos, nil
 }
@@ -267,7 +294,7 @@ func (s *reservationService) MarkAttendance(claseID uuid.UUID, attendances []Att
 	return nil
 }
 
-func toReservationDTO(r *models.Reservation) ReservationDTO {
+func toReservationDTO(r *models.Reservation, cuposDisponibles int) ReservationDTO {
 	dto := ReservationDTO{
 		ID:        r.ID.String(),
 		AlumnoID:  r.AlumnoID.String(),
@@ -278,7 +305,7 @@ func toReservationDTO(r *models.Reservation) ReservationDTO {
 		UpdatedAt: r.UpdatedAt,
 	}
 	if r.Clase != nil {
-		classDTO := toClassDTO(r.Clase, 0)
+		classDTO := toClassDTO(r.Clase, cuposDisponibles)
 		dto.Clase = &classDTO
 	}
 	return dto
