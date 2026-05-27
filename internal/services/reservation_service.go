@@ -37,10 +37,14 @@ type ReservationService interface {
 }
 
 type reservationService struct {
-	db          *gorm.DB
-	reservRepo  repository.ReservationRepository
-	waitRepo    repository.WaitlistRepository
-	classRepo   repository.ClassRepository
+	db            *gorm.DB
+	reservRepo    repository.ReservationRepository
+	waitRepo      repository.WaitlistRepository
+	classRepo     repository.ClassRepository
+	newReservRepo func(*gorm.DB) repository.ReservationRepository
+	newWaitRepo   func(*gorm.DB) repository.WaitlistRepository
+	newClassRepo  func(*gorm.DB) repository.ClassRepository
+	txFunc        func(func(*gorm.DB) error) error
 }
 
 func NewReservationService(
@@ -50,19 +54,42 @@ func NewReservationService(
 	classRepo repository.ClassRepository,
 ) ReservationService {
 	return &reservationService{
-		db:         db,
-		reservRepo: reservRepo,
-		waitRepo:   waitRepo,
-		classRepo:  classRepo,
+		db:            db,
+		reservRepo:    reservRepo,
+		waitRepo:      waitRepo,
+		classRepo:     classRepo,
+		newReservRepo: repository.NewReservationRepository,
+		newWaitRepo:   repository.NewWaitlistRepository,
+		newClassRepo:  repository.NewClassRepository,
+		txFunc:        func(fc func(*gorm.DB) error) error { return db.Transaction(fc) },
+	}
+}
+
+// NewReservationServiceForTest permite inyectar repos mockeados y un txFunc sin DB real.
+// Los factories reciben un *gorm.DB (nil en tests) y devuelven el mock directamente.
+func NewReservationServiceForTest(
+	reservRepo repository.ReservationRepository,
+	waitRepo repository.WaitlistRepository,
+	classRepo repository.ClassRepository,
+	txFunc func(func(*gorm.DB) error) error,
+) ReservationService {
+	return &reservationService{
+		reservRepo:    reservRepo,
+		waitRepo:      waitRepo,
+		classRepo:     classRepo,
+		newReservRepo: func(_ *gorm.DB) repository.ReservationRepository { return reservRepo },
+		newWaitRepo:   func(_ *gorm.DB) repository.WaitlistRepository { return waitRepo },
+		newClassRepo:  func(_ *gorm.DB) repository.ClassRepository { return classRepo },
+		txFunc:        txFunc,
 	}
 }
 
 func (s *reservationService) Reserve(alumnoID, claseID uuid.UUID) (*ReservationDTO, error) {
 	var dto *ReservationDTO
 
-	err := s.db.Transaction(func(tx *gorm.DB) error {
-		txReservRepo := repository.NewReservationRepository(tx)
-		txClassRepo := repository.NewClassRepository(tx)
+	err := s.txFunc(func(tx *gorm.DB) error {
+		txReservRepo := s.newReservRepo(tx)
+		txClassRepo := s.newClassRepo(tx)
 
 		class, err := txClassRepo.FindByID(claseID)
 		if err != nil {
@@ -116,9 +143,9 @@ func (s *reservationService) Reserve(alumnoID, claseID uuid.UUID) (*ReservationD
 }
 
 func (s *reservationService) Cancel(id, userID uuid.UUID, role models.Role) error {
-	return s.db.Transaction(func(tx *gorm.DB) error {
-		txReservRepo := repository.NewReservationRepository(tx)
-		txWaitRepo := repository.NewWaitlistRepository(tx)
+	return s.txFunc(func(tx *gorm.DB) error {
+		txReservRepo := s.newReservRepo(tx)
+		txWaitRepo := s.newWaitRepo(tx)
 
 		res, err := txReservRepo.FindByID(id)
 		if err != nil {
